@@ -1,0 +1,6 @@
+.env
+signing-backend/.env
+node_modules/
+signing-backend/node_modules/
+android/
+dist/

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Study PDFs</title>
+    <script>
+      (() => {
+        const theme = localStorage.getItem("study-theme");
+        if (theme === "dark") {
+          document.documentElement.classList.add("theme-dark");
+        }
+        document.documentElement.classList.add("no-transitions");
+      })();
+    </script>
+    <script>
+      window.SIGNING_API = "http://localhost:8080";
+    </script>
+    <link rel="icon" type="image/png" href="assets/icon/image.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <button class="icon-button" id="backBtn" aria-label="Go back">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M14.5 5.5 8 12l6.5 6.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+        <div class="topbar-title">
+          <h1 id="pageTitle">Study Library</h1>
+          <p id="pageSubtitle">Pick a folder</p>
+        </div>
+        <div class="spacer"></div>
+        <button class="icon-button" id="themeToggle" aria-label="Toggle theme">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 3a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1Zm0 13a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm7-5a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1ZM5 12a1 1 0 0 1-1 1H2a1 1 0 1 1 0-2h2a1 1 0 0 1 1 1Zm14.07-6.07a1 1 0 0 1 0 1.42l-1.4 1.4a1 1 0 1 1-1.42-1.41l1.4-1.41a1 1 0 0 1 1.42 0Zm-12.72 12.72a1 1 0 0 1 0 1.41l-1.41 1.41a1 1 0 0 1-1.42-1.41l1.41-1.41a1 1 0 0 1 1.42 0Zm12.72 1.41a1 1 0 0 1-1.41 0l-1.41-1.41a1 1 0 0 1 1.41-1.42l1.41 1.42a1 1 0 0 1 0 1.41Zm-12.72-12.72a1 1 0 0 1-1.42 0L3.52 5.93A1 1 0 0 1 4.94 4.5l1.41 1.41a1 1 0 0 1 0 1.42Z"
+              fill="currentColor"
+            />
+          </svg>
+        </button>
+      </header>
+
+      <main>
+        <section id="homeView" class="view active">
+          <div id="folderList" class="folder-list"></div>
+        </section>
+
+        <section id="listView" class="view">
+          <div class="search-row">
+            <div class="search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none" />
+                <path
+                  d="m20 20-3.5-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <input id="searchInput" type="search" placeholder="Search topics or PDFs" />
+            </div>
+            <button class="chip chip-ghost" id="favoritesToggle">Favorites</button>
+            <button class="chip" id="toggleAll">Collapse all</button>
+          </div>
+
+          <div id="sections"></div>
+          <div id="emptyState" class="empty-state hidden">
+            No results found. Try another search or clear filters.
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
