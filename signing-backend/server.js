@@ -9,6 +9,7 @@ const {
   B2_KEY_ID,
   B2_APP_KEY,
   B2_BUCKET_NAME,
+  B2_BUCKET_ID,
   ALLOWED_PREFIX = "",
   SIGNED_URL_TTL = "3600",
   PORT = "8080",
@@ -35,6 +36,10 @@ const ensureAuthorized = async () => {
 
 const ensureBucket = async () => {
   if (bucketId) return;
+  if (B2_BUCKET_ID) {
+    bucketId = B2_BUCKET_ID;
+    return;
+  }
   await ensureAuthorized();
   const res = await b2.listBuckets({ accountId: b2.accountId });
   const bucket = res.data.buckets.find((b) => b.bucketName === B2_BUCKET_NAME);

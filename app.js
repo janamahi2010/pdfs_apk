@@ -1287,9 +1287,17 @@ const saveBookmarks = () => {
   localStorage.setItem(bookmarksKey, JSON.stringify([...bookmarks]));
 };
 
+const normalizeSignedPath = (file) => {
+  if (file.startsWith("assets/")) {
+    return file.slice("assets/".length);
+  }
+  return file;
+};
+
 const getSignedUrl = async (file) => {
   if (!SIGNING_API) return encodeURI(file);
-  const resp = await fetch(`${SIGNING_API}/sign?file=${encodeURIComponent(file)}`);
+  const signedPath = normalizeSignedPath(file);
+  const resp = await fetch(`${SIGNING_API}/sign?file=${encodeURIComponent(signedPath)}`);
   if (!resp.ok) throw new Error("Failed to sign URL");
   const data = await resp.json();
   return data.url;
