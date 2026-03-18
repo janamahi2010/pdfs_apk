@@ -1507,17 +1507,11 @@ const renderSections = (query = "") => {
   });
 
   const openPdfFromCard = async (file) => {
-    const popup = window.open("", "_blank", "noopener");
     try {
       const url = await getSignedUrl(file);
-      if (popup) {
-        popup.opener = null;
-        popup.location = url;
-      } else {
-        window.location.href = url;
-      }
+      // Keep a single-tab flow (no extra blank tabs).
+      window.location.assign(url);
     } catch {
-      if (popup) popup.close();
       alert("Unable to open file right now.");
     }
   };
@@ -1627,3 +1621,11 @@ if (savedFolder && getFolderById(savedFolder)) {
 requestAnimationFrame(() => {
   document.documentElement.classList.remove("no-transitions");
 });
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch((err) => {
+      console.warn("Service worker registration failed:", err);
+    });
+  });
+}
