@@ -1213,6 +1213,7 @@ const folderList = document.getElementById("folderList");
 const favoritesToggle = document.getElementById("favoritesToggle");
 const emptyState = document.getElementById("emptyState");
 const SIGNING_API = window.SIGNING_API || "";
+const DRIVE_INDEX_PATH = "assets/icon/drive_files.csv";
 
 let collapsed = false;
 let activeFolderId = null;
@@ -1221,6 +1222,8 @@ const activeFolderKey = "active-folder";
 const bookmarksKey = "study-bookmarks";
 let favoritesOnly = false;
 let bookmarks = new Set();
+let driveIndex = new Map();
+let driveIndexReady = Promise.resolve();
 
 const statusIcon = `
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1294,13 +1297,90 @@ const normalizeSignedPath = (file) => {
   return file;
 };
 
+const parseCsvRow = (line) => {
+  const cells = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+    if (char === "," && !inQuotes) {
+      cells.push(current);
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  cells.push(current);
+  return cells.map((value) => value.trim());
+};
+
+const loadDriveIndex = async () => {
+  try {
+    const resp = await fetch(DRIVE_INDEX_PATH, { cache: "no-store" });
+    if (!resp.ok) return;
+    const text = await resp.text();
+    const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    if (lines.length <= 1) return;
+    const rows = lines.slice(1);
+    const index = new Map();
+    rows.forEach((line) => {
+      const [path, name, id] = parseCsvRow(line);
+      if (!path || !name || !id) return;
+      const folder = path.replace(/^Testbook\//i, "").trim();
+      const key = `${folder}/${name}`;
+      index.set(key, id);
+    });
+    driveIndex = index;
+  } catch (err) {
+    console.warn("Drive index not available.", err);
+  }
+};
+
+driveIndexReady = loadDriveIndex();
+
+const getDriveKeyFromFile = (file) => {
+  const normalized = normalizeSignedPath(file);
+  const parts = normalized.split("/");
+  if (parts.length < 2) return null;
+  const name = parts.pop();
+  const folder = parts.join("/");
+  if (!folder || !name) return null;
+  return `${folder}/${name}`;
+};
+
+const getDriveUrl = (file) => {
+  const key = getDriveKeyFromFile(file);
+  if (!key) return null;
+  const id = driveIndex.get(key);
+  if (!id) return null;
+  return `https://drive.google.com/file/d/${id}/view`;
+};
+
 const getSignedUrl = async (file) => {
+  await driveIndexReady;
+  const driveUrl = getDriveUrl(file);
+  if (driveUrl) return driveUrl;
   if (!SIGNING_API) return encodeURI(file);
   const signedPath = normalizeSignedPath(file);
-  const resp = await fetch(`${SIGNING_API}/sign?file=${encodeURIComponent(signedPath)}`);
-  if (!resp.ok) throw new Error("Failed to sign URL");
-  const data = await resp.json();
-  return data.url;
+  try {
+    const resp = await fetch(`${SIGNING_API}/sign?file=${encodeURIComponent(signedPath)}`);
+    if (!resp.ok) throw new Error("Failed to sign URL");
+    const data = await resp.json();
+    if (!data?.url) throw new Error("Signing service returned no URL");
+    return data.url;
+  } catch (err) {
+    console.warn("Using direct file path fallback.", err);
+    return encodeURI(file);
+  }
 };
 
 const getFolderById = (id) => library.find((folder) => folder.id === id);
@@ -1426,6 +1506,22 @@ const renderSections = (query = "") => {
     });
   });
 
+  const openPdfFromCard = async (file) => {
+    const popup = window.open("", "_blank", "noopener");
+    try {
+      const url = await getSignedUrl(file);
+      if (popup) {
+        popup.opener = null;
+        popup.location = url;
+      } else {
+        window.location.href = url;
+      }
+    } catch {
+      if (popup) popup.close();
+      alert("Unable to open file right now.");
+    }
+  };
+
   sectionsEl.querySelectorAll(".card").forEach((card) => {
     card.addEventListener("click", async (event) => {
       if (event.target.closest(".bookmark")) return;
@@ -1435,10 +1531,7 @@ const renderSections = (query = "") => {
       if (!file) return;
       try {
         card.classList.add("card-loading");
-        const url = await getSignedUrl(file);
-        window.open(url, "_blank", "noopener");
-      } catch {
-        alert("Unable to open file right now.");
+        await openPdfFromCard(file);
       } finally {
         card.classList.remove("card-loading");
       }
